@@ -21,7 +21,9 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v2
       - name: check
-        run: make all check
+        run: |
+          make all check
+          echo $?
       - name: integration test
         run: tests/system_test.sh
   golangci:
