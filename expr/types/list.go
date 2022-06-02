@@ -212,6 +212,20 @@ func (t *Suggestion) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
+type Option struct {
+	Type  SuggestionTypes
+	Value interface{}
+}
+
+func StringsToSuggestionList(in []string) []Suggestion {
+	res := make([]Suggestion, 0, len(in))
+
+	for _, v := range in {
+		res = append(res, Suggestion{Type: SString, Value: v})
+	}
+	return res
+}
+
 // FunctionParam contains list of all available parameters of function
 type FunctionParam struct {
 	Name        string        `json:"name"`
