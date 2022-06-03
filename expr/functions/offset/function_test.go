@@ -1,0 +1,60 @@
+package offset
+
+import (
+	"math"
+	"testing"
+	"time"
+
+	"github.com/bookingcom/carbonapi/expr/helper"
+	"github.com/bookingcom/carbonapi/expr/metadata"
+	"github.com/bookingcom/carbonapi/expr/types"
+	"github.com/bookingcom/carbonapi/pkg/parser"
+	th "github.com/bookingcom/carbonapi/tests"
+	"go.uber.org/zap"
+)
+
+func init() {
+	md := New("")
+	evaluator := th.EvaluatorFromFunc(md[0].F)
+	metadata.SetEvaluator(evaluator)
+	helper.SetEvaluator(evaluator)
+	for _, m := range md {
+		metadata.RegisterFunction(m.Name, m.F, zap.NewNop())
+	}
+}
+
+func TestFunction(t *testing.T) {
+	now32 := int32(time.Now().Unix())
+
+	tests := []th.EvalTestItem{
+		{
+			"offset(metric1,10)",
+			map[parser.MetricRequest][]*types.MetricData{
+				{"metric1", 0, 1}: {types.MakeMetricData("metric1", []float64{93, 94, 95, math.NaN(), 97, 98, 99, 100, 101}, 1, now32)},
+			},
+			[]*types.MetricData{types.MakeMetricData("offset(metric1,10)",
+				[]float64{103, 104, 105, math.NaN(), 107, 108, 109, 110, 111}, 1, now32)},
+		},
+		{
+			"add(metric*,-10)",
+			map[parser.MetricRequest][]*types.MetricData{
+				{"metric*", 0, 1}: {
+					types.MakeMetricData("metric1", []float64{93, 94, 95, math.NaN(), 97, 98, 99, 100, 101}, 1, now32),
+					types.MakeMetricData("metric2", []float64{193, 194, 195, math.NaN(), 197, 198, 199, 200, 201}, 1, now32),
+				},
+			},
+			[]*types.MetricData{
+				types.MakeMetricData("add(metric1,-10)", []float64{83, 84, 85, math.NaN(), 87, 88, 89, 90, 91}, 1, now32),
+				types.MakeMetricData("add(metric2,-10)", []float64{183, 184, 185, math.NaN(), 187, 188, 189, 190, 191}, 1, now32),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		testName := tt.Target
+		t.Run(testName, func(t *testing.T) {
+			th.TestEvalExpr(t, &tt)
+		})
+	}
+
+}
